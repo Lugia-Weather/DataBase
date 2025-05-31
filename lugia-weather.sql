@@ -169,7 +169,7 @@ END LOOP;
 FOR i IN 1..5 LOOP
 INSERT INTO tbl_alerta (id_alerta, tipo, mensagem, data_criacao)
 VALUES (i,
-CASE i WHEN 1 THEN 'Normal' WHEN 2 THEN 'Chuva Leve' WHEN 3 THEN 'Chuva Moderada' WHEN 4 THEN 'Risco de Alagamento' ELSE 'Alagamento' END,
+CASE i WHEN 1 THEN 'Chuva leve' WHEN 2 THEN 'Chuva leve' WHEN 3 THEN 'Alagamento' WHEN 4 THEN 'Risco de alagamento' ELSE 'Alagamento' END,
 'Mensagem de alerta ' || i,
 SYSDATE);
 END LOOP;
@@ -189,7 +189,7 @@ END LOOP;
 -- LEITURA
 FOR i IN 1..5 LOOP
 INSERT INTO tbl_leitura (id_leitura, id_dispositivo, nivel_agua_cm, status_nivel, data_criacao, id_alerta)
-VALUES (i, i, 5.0*i,
+VALUES (i, i, ((5.0+i) * i),
 CASE i WHEN 1 THEN 'Normal' WHEN 2 THEN 'Chuva' WHEN 3 THEN 'Atenção' WHEN 4 THEN 'Risco' ELSE 'Alagado' END,
 SYSDATE, i);
 END LOOP;
@@ -279,8 +279,167 @@ END;
 
 
 
+-- Funções para retorno de dados
+
+-- Função 1 -> Calcular média dos registros de nível da água.
+CREATE OR REPLACE FUNCTION fnc_nivel_medio_geral
+RETURN NUMBER
+IS
+    v_media NUMBER;
+BEGIN
+    SELECT AVG(nivel_agua_cm)
+      INTO v_media
+      FROM tbl_leitura;
+
+    RETURN NVL(v_media, 0);
+END;
+
+SELECT fnc_nivel_medio_geral() FROM dual;
 
 
+-- Função 2  -> Contador de alertas por tipo
+CREATE OR REPLACE FUNCTION fnc_total_alertas_tipo(p_tipo IN VARCHAR2)
+RETURN NUMBER
+IS
+    v_total NUMBER;
+    tipo_invalido EXCEPTION;
+BEGIN
+    SELECT COUNT(*)
+      INTO v_total
+      FROM tbl_alerta
+     WHERE tipo = p_tipo;
+
+    IF p_tipo <> 'Alagamento' OR p_tipo <> 'Risco de alagamento' OR p_tipo <> 'Chuava leve' THEN
+        RAISE tipo_invalido;
+    END IF;
+
+    RETURN v_total;
+
+EXCEPTION
+    WHEN tipo_invalido THEN
+        DBMS_OUTPUT.PUT_LINE('Nenhum alerta encontrado para o tipo informado: ' || p_tipo);
+        RETURN 0;
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro inesperado: ' || SQLERRM);
+        RETURN 0;
+END;
+
+SELECT fnc_total_alertas_tipo('Chuava leve') FROM dual;
+
+
+
+-- 5 e 6 -> Consultas complexas utilizando cursores explicitos
+
+-- Relatório de Dispositivos com Média do Nível de Água e Alerta de Risco
+DECLARE
+    v_id_dispositivo    tbl_dispositivo_iot.id_dispositivo%TYPE;
+    v_id_modulo         tbl_dispositivo_iot.id_modulo%TYPE;
+    v_media_nivel       NUMBER(8,3);
+    v_status_risco      VARCHAR2(100);
+    
+
+    CURSOR c_dispositivos IS
+        SELECT d.id_dispositivo, d.id_modulo, AVG(l.nivel_agua_cm) AS media_nivel
+          FROM tbl_dispositivo_iot d
+          JOIN tbl_leitura l ON l.id_dispositivo = d.id_dispositivo
+         GROUP BY d.id_dispositivo, d.id_modulo
+        HAVING AVG(l.nivel_agua_cm) IS NOT NULL
+         ORDER BY media_nivel DESC;
+BEGIN
+    OPEN c_dispositivos;
+    LOOP
+        FETCH c_dispositivos INTO v_id_dispositivo, v_id_modulo, v_media_nivel;
+        EXIT WHEN c_dispositivos%NOTFOUND;
+
+        -- IF/ELSE para classificação de risco
+        IF v_media_nivel > 50 THEN
+            v_status_risco := 'RISCO DE ALAGAMENTO';
+        ELSE
+            v_status_risco := 'Nível seguro';
+        END IF;
+
+        DBMS_OUTPUT.PUT_LINE('Dispositivo: ' || v_id_modulo ||
+                             ' | Média nível água: ' || v_media_nivel ||
+                             ' | Status: ' || v_status_risco);
+    END LOOP;
+    CLOSE c_dispositivos;
+END;
+
+
+-- Relatório de Usuários e Dispositivos Monitorados
+DECLARE
+    v_nome          tbl_usuario.nome%TYPE;
+    v_email         tbl_usuario.email%TYPE;
+    v_total_disp    NUMBER;
+    v_status_disp   VARCHAR2(50);
+
+    -- Cursor para usuários
+    CURSOR c_usuarios IS
+        SELECT u.id_usuario, u.nome, u.email, u.id_endereco
+          FROM tbl_usuario u
+         ORDER BY u.nome;
+
+    -- Cursor para dispositivos por endereço
+    CURSOR c_disp_status(p_id_endereco INTEGER) IS
+        SELECT status
+          FROM tbl_dispositivo_iot
+         WHERE id_endereco = p_id_endereco;
+
+BEGIN
+    FOR r_usuario IN c_usuarios LOOP
+        v_total_disp := 0;
+        v_status_disp := '';
+
+        -- Conta dispositivos no endereço do usuário
+        FOR r_disp IN c_disp_status(r_usuario.id_endereco) LOOP
+            v_total_disp := v_total_disp + 1;
+            v_status_disp := v_status_disp || r_disp.status || ' | ';
+        END LOOP;
+
+        IF v_total_disp > 0 THEN
+            DBMS_OUTPUT.PUT_LINE('Usuário: ' || r_usuario.nome ||
+                                 ' | Email: ' || r_usuario.email ||
+                                 ' | Dispositivos monitorados: ' || v_total_disp ||
+                                 ' | Status: ' || v_status_disp);
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('Usuário: ' || r_usuario.nome ||
+                                 ' | Email: ' || r_usuario.email ||
+                                 ' | Nenhum dispositivo monitorado em seu endereço!');
+        END IF;
+    END LOOP;
+END;
+
+
+
+-- 5 Consultas SQL complexas
+
+-- 1 -> Total de leituras e média do nível de água por dispositivo
+SELECT d.id_modulo, COUNT(l.id_leitura) AS total_leituras, AVG(l.nivel_agua_cm) AS media_nivel_agua FROM
+    tbl_dispositivo_iot d JOIN tbl_leitura l ON d.id_dispositivo = l.id_dispositivo
+GROUP BY d.id_modulo ORDER BY media_nivel_agua DESC;
+
+-- 2 -> Total de alertas por tipo, exibindo apenas tipos com mais de 1 ocorrência
+SELECT tipo, COUNT(*) AS total_alertas FROM tbl_alerta GROUP BY tipo
+HAVING COUNT(*) > 1 ORDER BY total_alertas DESC;
+
+-- 3 -> Usuários com o total de dispositivos em seu endereço
+SELECT u.nome, u.email, COUNT(d.id_dispositivo) AS total_dispositivos FROM tbl_usuario u
+JOIN tbl_endereco e ON u.id_endereco = e.id_endereco LEFT JOIN tbl_dispositivo_iot d ON d.id_endereco = e.id_endereco
+GROUP BY u.nome, u.email ORDER BY total_dispositivos DESC;
+
+-- 4 -> Bairros com maior ocorrência de alertas de alagamento
+SELECT e.bairro, COUNT(a.id_alerta) AS total_alertas_alagamento
+FROM tbl_endereco e JOIN tbl_dispositivo_iot d ON d.id_endereco = e.id_endereco
+JOIN tbl_leitura l ON l.id_dispositivo = d.id_dispositivo
+JOIN tbl_alerta a ON a.id_alerta = l.id_alerta
+WHERE a.tipo = 'Alagamento' GROUP BY e.bairro
+HAVING COUNT(a.id_alerta) > 0 ORDER BY total_alertas_alagamento DESC;
+
+-- 5 -> Resumo Dispositivos
+SELECT d.id_modulo, d.status, COUNT(l.id_leitura) AS total_leituras,
+MAX(l.data_criacao) AS ultima_leitura FROM tbl_dispositivo_iot d
+LEFT JOIN tbl_leitura l ON d.id_dispositivo = l.id_dispositivo
+GROUP BY d.id_modulo, d.status ORDER BY ultima_leitura DESC;
 
 
 -- Relat�rio do Resumo do Oracle SQL Developer Data Modeler: 
