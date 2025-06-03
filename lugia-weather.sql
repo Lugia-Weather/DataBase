@@ -94,7 +94,6 @@ CREATE TABLE tbl_usuario (
 
 ALTER TABLE tbl_usuario ADD CONSTRAINT tbl_usuario_pk PRIMARY KEY ( id_usuario );
 
--- FKs permanecem as mesmas
 ALTER TABLE tbl_dispositivo_iot
     ADD CONSTRAINT tbl_disp_endereco_fk FOREIGN KEY ( id_endereco )
         REFERENCES tbl_endereco ( id_endereco );
