@@ -141,7 +141,7 @@ DELETE FROM TBL_ALERTA;
 DELETE FROM TBL_DISPOSITIVO_IOT;
 
 DELETE FROM TBL_ENDERECO;
-
+COMMIT;
 
 
 -- PL/SQL
@@ -206,6 +206,7 @@ BEGIN
             i
         );
     END LOOP;
+    COMMIT;
 END;
 
 
@@ -255,6 +256,7 @@ UPDATE tbl_leitura
 SET nivel_agua_cm = 100.0 + i
 WHERE id_leitura = i;
 END LOOP;
+COMMIT;
 END;
 
 
@@ -290,6 +292,7 @@ END LOOP;
 FOR i IN 1..5 LOOP
 DELETE FROM tbl_endereco WHERE id_endereco = i;
 END LOOP;
+COMMIT;
 END;
 
 
