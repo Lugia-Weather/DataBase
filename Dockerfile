@@ -1,17 +1,6 @@
-# Usa a imagem base pública do Oracle XE 11g
-FROM oracleinanutshell/oracle-xe-11g
 
-# Cria um usuário não-root
-RUN useradd -m dbuser
+FROM gvenzl/oracle-xe:21.3.0
 
-# Define o diretório de trabalho
-WORKDIR /home/dbuser
+ENV ORACLE_PASSWORD=Fiap123456
 
-# Usa o usuário não-root
-USER dbuser
-
-# Variável de ambiente obrigatória
-ENV ORACLE_PASSWORD=oracle123
-
-# Expõe a porta padrão do Oracle XE
-EXPOSE 1521
+COPY ./database/Database/CriarUsuario.sql /docker-entrypoint-initdb.d/
