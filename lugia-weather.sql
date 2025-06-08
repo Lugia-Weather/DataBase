@@ -3,19 +3,17 @@
 --   site:      Oracle Database 11g
 --   tipo:      Oracle Database 11g
 
-
-
 -- predefined type, no DDL - MDSYS.SDO_GEOMETRY
 
 -- predefined type, no DDL - XMLTYPE
 
 -- Drops para cada tabela
-DROP TABLE TBL_ALERTA CASCADE CONSTRAINTS PURGE;
-DROP TABLE TBL_LEITURA CASCADE CONSTRAINTS PURGE;
-DROP TABLE TBL_TELEFONE CASCADE CONSTRAINTS PURGE;
-DROP TABLE TBL_ENDERECO CASCADE CONSTRAINTS PURGE;
-DROP TABLE TBL_DISPOSITIVO_IOT CASCADE CONSTRAINTS PURGE;
-DROP TABLE TBL_USUARIO CASCADE CONSTRAINTS PURGE;
+DROP TABLE tbl_alerta CASCADE CONSTRAINTS PURGE;
+DROP TABLE tbl_leitura CASCADE CONSTRAINTS PURGE;
+DROP TABLE tbl_telefone CASCADE CONSTRAINTS PURGE;
+DROP TABLE tbl_endereco CASCADE CONSTRAINTS PURGE;
+DROP TABLE tbl_dispositivo_iot CASCADE CONSTRAINTS PURGE;
+DROP TABLE tbl_usuario CASCADE CONSTRAINTS PURGE;
 
 -- DDL
 CREATE TABLE tbl_alerta (
@@ -64,11 +62,6 @@ CREATE TABLE tbl_leitura (
     id_alerta      INTEGER NOT NULL
 );
 
-CREATE UNIQUE INDEX tbl_leitura__idx ON
-    tbl_leitura (
-        id_alerta
-    ASC );
-
 ALTER TABLE tbl_leitura ADD CONSTRAINT tbl_leitura_pk PRIMARY KEY ( id_leitura );
 
 CREATE TABLE tbl_telefone (
@@ -116,38 +109,35 @@ ALTER TABLE tbl_usuario
 
 -- Select para cada tabela
 
-SELECT * FROM TBL_ALERTA;
+SELECT * FROM tbl_alerta;
 
-SELECT * FROM TBL_LEITURA;
+SELECT * FROM tbl_leitura;
 
-SELECT * FROM TBL_TELEFONE;
+SELECT * FROM tbl_telefone;
 
-SELECT * FROM TBL_ENDERECO;
+SELECT * FROM tbl_endereco;
 
-SELECT * FROM TBL_DISPOSITIVO_IOT;
+SELECT * FROM tbl_dispositivo_iot;
 
-SELECT * FROM TBL_USUARIO;
-
+SELECT * FROM tbl_usuario;
 
 -- Delete para cada tabela
-DELETE FROM TBL_USUARIO;
+DELETE FROM tbl_usuario;
 
-DELETE FROM TBL_TELEFONE;
+DELETE FROM tbl_telefone;
 
-DELETE FROM TBL_LEITURA;
+DELETE FROM tbl_leitura;
 
-DELETE FROM TBL_ALERTA;
+DELETE FROM tbl_alerta;
 
-DELETE FROM TBL_DISPOSITIVO_IOT;
+DELETE FROM tbl_dispositivo_iot;
 
-DELETE FROM TBL_ENDERECO;
+DELETE FROM tbl_endereco;
 COMMIT;
-
 
 -- PL/SQL
 SET VERIFY OFF;
 SET SERVEROUTPUT ON; 
-
 
 -- Procedure com bloco anônimo de inserção
 BEGIN
@@ -210,22 +200,19 @@ BEGIN
 END;
 
 
-
-
-
 -- Procedure com bloco anônimo de atualização
 BEGIN
 -- ENDERECO
 FOR i IN 1..5 LOOP
 UPDATE tbl_endereco
-SET bairro = 'Bairro Atualizado ' || i, data_atualizacao = SYSDATE
+SET bairro = 'Bairro Atualizado ' || i, data_atualizacao = SYSTIMESTAMP
 WHERE id_endereco = i;
 END LOOP;
 
 -- TELEFONE
 FOR i IN 1..5 LOOP
 UPDATE tbl_telefone
-SET numero = '98888888' || TO_CHAR(i), data_atualizacao = SYSDATE
+SET numero = '98888888' || TO_CHAR(i), data_atualizacao = SYSTIMESTAMP
 WHERE id_telefone = i;
 END LOOP;
 
@@ -239,14 +226,14 @@ END LOOP;
 -- DISPOSITIVO_IOT
 FOR i IN 1..5 LOOP
 UPDATE tbl_dispositivo_iot
-SET status = 'Atualizado ' || i, data_atualizacao = SYSDATE
+SET status = 'Atualizado ' || i, data_atualizacao = SYSTIMESTAMP
 WHERE id_dispositivo = i;
 END LOOP;
 
 -- USUARIO
 FOR i IN 1..5 LOOP
 UPDATE tbl_usuario
-SET nome = 'Usuário Atualizado ' || i, data_atualizacao = SYSDATE
+SET nome = 'Usuário Atualizado ' || i, data_atualizacao = SYSTIMESTAMP
 WHERE id_usuario = i;
 END LOOP;
 
@@ -258,8 +245,6 @@ WHERE id_leitura = i;
 END LOOP;
 COMMIT;
 END;
-
-
 
 -- Procedure com bloco anônimo de exclusão
 BEGIN
@@ -295,8 +280,6 @@ END LOOP;
 COMMIT;
 END;
 
-
-
 -- Funções para retorno de dados
 
 -- Função 1 -> Calcular média dos registros de nível da água.
@@ -314,7 +297,6 @@ END;
 
 SELECT fnc_nivel_medio_geral() FROM dual;
 
-
 -- Função 2  -> Contador de alertas por tipo
 CREATE OR REPLACE FUNCTION fnc_total_alertas_tipo(p_tipo IN VARCHAR2)
 RETURN NUMBER
@@ -329,9 +311,8 @@ BEGIN
     RETURN v_total;
 END;
 
+
 SELECT fnc_total_alertas_tipo('Alagamento') FROM dual;
-
-
 
 -- 5 e 6 -> Consultas complexas utilizando cursores explicitos
 
@@ -341,7 +322,6 @@ DECLARE
     v_id_modulo         tbl_dispositivo_iot.id_modulo%TYPE;
     v_media_nivel       NUMBER(8,3);
     v_status_risco      VARCHAR2(100);
-    
 
     CURSOR c_dispositivos IS
         SELECT d.id_dispositivo, d.id_modulo, AVG(l.nivel_agua_cm) AS media_nivel
@@ -414,6 +394,7 @@ BEGIN
     END LOOP;
 END;
 
+
 -- 5 Consultas SQL complexas
 
 -- 1 -> Total de leituras e média do nível de água por dispositivo
@@ -443,48 +424,3 @@ SELECT d.id_modulo, d.status, COUNT(l.id_leitura) AS total_leituras,
 MAX(l.data_criacao) AS ultima_leitura FROM tbl_dispositivo_iot d
 LEFT JOIN tbl_leitura l ON d.id_dispositivo = l.id_dispositivo
 GROUP BY d.id_modulo, d.status ORDER BY ultima_leitura DESC;
-
-
-
--- Relat�rio do Resumo do Oracle SQL Developer Data Modeler: 
--- 
--- CREATE TABLE                             6
--- CREATE INDEX                             1
--- ALTER TABLE                             11
--- CREATE VIEW                              0
--- ALTER VIEW                               0
--- CREATE PACKAGE                           0
--- CREATE PACKAGE BODY                      0
--- CREATE PROCEDURE                         0
--- CREATE FUNCTION                          0
--- CREATE TRIGGER                           0
--- ALTER TRIGGER                            0
--- CREATE COLLECTION TYPE                   0
--- CREATE STRUCTURED TYPE                   0
--- CREATE STRUCTURED TYPE BODY              0
--- CREATE CLUSTER                           0
--- CREATE CONTEXT                           0
--- CREATE DATABASE                          0
--- CREATE DIMENSION                         0
--- CREATE DIRECTORY                         0
--- CREATE DISK GROUP                        0
--- CREATE ROLE                              0
--- CREATE ROLLBACK SEGMENT                  0
--- CREATE SEQUENCE                          0
--- CREATE MATERIALIZED VIEW                 0
--- CREATE MATERIALIZED VIEW LOG             0
--- CREATE SYNONYM                           0
--- CREATE TABLESPACE                        0
--- CREATE USER                              0
--- 
--- DROP TABLESPACE                          0
--- DROP DATABASE                            0
--- 
--- REDACTION POLICY                         0
--- 
--- ORDS DROP SCHEMA                         0
--- ORDS ENABLE SCHEMA                       0
--- ORDS ENABLE OBJECT                       0
--- 
--- ERRORS                                   2
--- WARNINGS                                 0
