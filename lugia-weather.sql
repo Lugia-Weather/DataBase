@@ -45,6 +45,7 @@ CREATE TABLE tbl_endereco (
     complemento      VARCHAR2(100),
     uf               CHAR(2) NOT NULL,
     localidade       VARCHAR2(50) NOT NULL,
+    cep              VARCHAR2(20),
     latitude         NUMBER(10, 6),
     longitude        NUMBER(11, 6),
     data_criacao     TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
@@ -59,7 +60,7 @@ CREATE TABLE tbl_leitura (
     nivel_agua_cm  NUMBER(8, 3) NOT NULL,
     status_nivel   VARCHAR2(20) NOT NULL,
     data_criacao   TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
-    id_alerta      INTEGER NOT NULL
+    id_alerta      INTEGER
 );
 
 ALTER TABLE tbl_leitura ADD CONSTRAINT tbl_leitura_pk PRIMARY KEY ( id_leitura );
